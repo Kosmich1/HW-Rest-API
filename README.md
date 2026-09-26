@@ -31,9 +31,15 @@ FastAPI, SQLAlchemy 2 (async) + asyncpg, PostgreSQL, Docker.
 
 - `title`, `description`, `author` — поиск по вхождению подстроки без учёта регистра;
 - `price_min`, `price_max` — диапазон цены;
+- `created_at` — дата создания в формате `ГГГГ-ММ-ДД`: объявления, созданные в этот день (UTC);
+- `created_from`, `created_to` — диапазон дат создания `ГГГГ-ММ-ДД`, обе границы включительно;
 - `limit` (по умолчанию 20, максимум 100), `offset` — пагинация.
 
-Пример: `GET /advertisement?title=шкаф&author=иван&price_max=10000`
+Примеры:
+
+- `GET /advertisement?title=шкаф&author=иван&price_max=10000`
+- `GET /advertisement?created_at=2026-09-26`
+- `GET /advertisement?created_from=2026-09-01&created_to=2026-09-30`
 
 Интерактивная документация Swagger: http://127.0.0.1:8080/docs
 

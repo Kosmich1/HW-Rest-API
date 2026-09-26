@@ -1,7 +1,8 @@
 # app/schemas.py
+from datetime import date
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class BaseRequest(BaseModel):
@@ -45,8 +46,21 @@ class SearchAdvertisementParams(BaseRequest):
     author: Optional[str] = None
     price_min: Optional[float] = Field(default=None, ge=0)
     price_max: Optional[float] = Field(default=None, ge=0)
+    created_at: Optional[date] = None
+    created_from: Optional[date] = None
+    created_to: Optional[date] = None
     limit: int = Field(default=20, ge=1, le=100)
     offset: int = Field(default=0, ge=0)
+
+    @model_validator(mode="after")
+    def check_ranges(self):
+        if (self.price_min is not None and self.price_max is not None
+                and self.price_min > self.price_max):
+            raise ValueError("price_min не может быть больше price_max")
+        if (self.created_from is not None and self.created_to is not None
+                and self.created_from > self.created_to):
+            raise ValueError("created_from не может быть позже created_to")
+        return self
 
 
 class SearchAdvertisementResponse(BaseModel):

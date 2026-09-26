@@ -1,4 +1,6 @@
 # app/services.py
+from datetime import date, datetime, time, timedelta, timezone
+
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -74,13 +76,18 @@ async def delete_item(
     await session.commit()
 
 
+def _day_start(day: date) -> datetime:
+    """Начало суток (00:00 UTC) для указанной даты."""
+    return datetime.combine(day, time.min, tzinfo=timezone.utc)
+
+
 async def search_advertisements(
         session: AsyncSession,
         params: schemas.SearchAdvertisementParams
 ) -> list[models.Advertisement]:
     """
     Поиск объявлений: текстовые поля ищутся по вхождению без учёта регистра,
-    цена — по диапазону.
+    цена — по диапазону, дата создания — за конкретный день или по диапазону дат.
     """
     Advertisement = models.Advertisement
     stmt = select(Advertisement)
@@ -95,6 +102,17 @@ async def search_advertisements(
         stmt = stmt.where(Advertisement.price >= params.price_min)
     if params.price_max is not None:
         stmt = stmt.where(Advertisement.price <= params.price_max)
+    if params.created_at is not None:
+        stmt = stmt.where(
+            Advertisement.created_at >= _day_start(params.created_at),
+            Advertisement.created_at < _day_start(params.created_at + timedelta(days=1)),
+        )
+    if params.created_from is not None:
+        stmt = stmt.where(Advertisement.created_at >= _day_start(params.created_from))
+    if params.created_to is not None:
+        stmt = stmt.where(
+            Advertisement.created_at < _day_start(params.created_to + timedelta(days=1))
+        )
 
     stmt = stmt.order_by(Advertisement.created_at.desc(), Advertisement.id.desc())
     stmt = stmt.limit(params.limit).offset(params.offset)
